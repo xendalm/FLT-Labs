@@ -7,48 +7,32 @@ map<char, set<string>> rules;
 map<char, set<string>> forms;
 map<char, int> classes;
 map<string, vector<char>> classesCheckMap;
-vector<pair<char, string>> nontermsToCheck;
-string checkString;
-void setNontermsToCheck(){
-    for(auto elem : classes) {
-        string tempS;
-        for(string rule :  rules[elem.first]){
-            bool f = false;
-            for(char & c : rule){
-                if(classes.find(c) != classes.end()) {
-                    tempS += c;
-                    f = true;
-                }
-            }
-            if(!f) tempS += rule;
-            tempS += '#';
-        }
-        nontermsToCheck.emplace_back(elem.first, tempS);
-    }
-}
+unsigned long long checker = 0;
 void updateClasses(){
     int classNum = 1;
+    checker = 0;
     for(auto elem : classesCheckMap) {
-        if(elem.first == "") continue;
-        for(char nont : elem.second){
-            classes[nont] = classNum;
-        }
+        checker |= (unsigned long long) 1 << (elem.second[0] - 'A');
+        for(char nont : elem.second) classes[nont] = classNum;
         classNum++;
-    }
-    checkString = "";
-    for(auto & elem : classes) {
-        checkString += char('0' + elem.second);
     }
 }
 void checkClasses(){
     classesCheckMap.clear();
-    for(auto elem : nontermsToCheck){
-        string tempS = elem.second;
-        for(char & c : tempS){
-            auto t = classes.find(c);
-            if(t != classes.end()){
-                c = char('0' + classes[c]);
+    for(auto elem : rules){
+        string tempS;
+        string prevS;
+        for(auto rule : elem.second){
+            string newS = rule;
+            for(char & c : newS){
+                auto t = classes.find(c);
+                if(t != classes.end()){
+                    c = char('0' + classes[c]);
+                }
             }
+            if(newS != prevS)
+                tempS += newS + "#";
+            prevS = newS;
         }
         classesCheckMap[tempS].push_back(elem.first);
     }
@@ -80,6 +64,7 @@ int main() {
         while(true){
             cin >> ch;
             if(ch == '\n') break;
+            if(ch == ' ') continue;
             if(classes.find(ch) != classes.end()) {
                 s1 += '_';
             }else{
@@ -94,32 +79,34 @@ int main() {
     map<set<string>, vector<char>> rulesToName;
     for(auto & elem : forms) rulesToName[elem.second].push_back(elem.first);
     int classNum = 1;
-    for(auto & elem : rulesToName) {
-        for(char nont : elem.second){
-            classes[nont] = classNum;
-        }
+    checker = 0;
+    for(auto elem : rulesToName) {
+        checker |= (unsigned long long) 1 << (elem.second[0] - 'A');
+        for(char nont : elem.second) classes[nont] = classNum;
         classNum++;
     }
-    checkString = "";
-    for(auto & elem : classes) {
-        checkString += char('0' + elem.second);
-    }
-    setNontermsToCheck();
+    vector<char> emptyNonterms;
+    for(auto & elem : classes)
+        if(elem.second == 0) emptyNonterms.push_back(elem.first);
     //checker
     while(true) {
-        string temp = checkString;
+        unsigned long long temp = checker;
         checkClasses();
         updateClasses();
-        if(checkString == temp) break;
+        if(checker == temp) break;
     }
     //output
+    if(!emptyNonterms.empty()) {
+        cout << "{";
+        for (int i = 0; i < emptyNonterms.size() - 1; i++) cout << emptyNonterms[i] << ",";
+        cout << emptyNonterms[emptyNonterms.size() - 1] << "}";
+    }
     for(auto & elem : classesCheckMap) {
         cout << "{";
         for(int i = 0; i < elem.second.size() - 1; i++)  cout << elem.second[i] << ",";
         cout <<  elem.second[elem.second.size() - 1] << "}";
     }
     cout << endl;
-
     map<int, char> classToName;
     for(auto & elem : classes){
         auto t = classToName.find(elem.second);
@@ -142,6 +129,5 @@ int main() {
             cout << curNonTerm << " -> " << s << endl;
         }
     }
-
     return 0;
 }
